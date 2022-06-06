@@ -3,38 +3,43 @@ from flask_socketio import leave_room, send, emit, join_room
 
 from .. import socketio
 from . import rooms
-from ..Chess.chess import coord_to_chess, coord_from_chess
+from ..chess_game import coord_to_chess, coord_from_chess
 
 
 def update_lobby_list():
-    rooms_spectate =[{'room': key,
-                      'players': [{'name': key} for key,value in value.players.items() ] } for key, value in rooms.items() if len(value.players) == 2]
+    rooms_spectate = [{'room': key,
+                       'players': [{'name': key} for key, value in value.players.items()]} for key, value in
+                      rooms.items() if len(value.players) == 2]
     emit('update_lobby_list',
          {'rooms_join': [{'room': key,
-                          'creator': value.creator } for key, value in rooms.items() if len(value.players) < 2],
+                          'creator': value.creator} for key, value in rooms.items() if len(value.players) < 2],
           'rooms_spectate': rooms_spectate
           },
          namespace='/lobby',
          broadcast=True)
 
+
 @socketio.on('connect', namespace='/lobby')
 def lobby_connect(auth):
     update_lobby_list()
+
 
 @socketio.on('disconnect', namespace='/lobby')
 def lobby_disconnect():
     pass
 
+
 @socketio.on('connect', namespace='/chess')
 def chess_connect():
     room = session['room']
-    if session['spectator'] == False:
+    if not session['spectator']:
         rooms[room].players.update({session.get('name'): {}})
     else:
         rooms[room].spectators.update({session.get('name'): {}})
     join_room(room)
     send(f'{session.get("name")} connected', room=room)
     update_lobby_list()
+
 
 @socketio.on('disconnect', namespace='/chess')
 def chess_disconnect():
@@ -43,12 +48,14 @@ def chess_disconnect():
     send(f'{session.get("name")} disconnected', room=room)
     update_lobby_list()
 
+
 @socketio.on('move_to', namespace='/chess')
-def move_to(move_to):
+def move_to(chess_coord):
     figures = rooms[session.get('room')].board.get_figures()
     # figures[move_to.get('id')]['x'] = move_to.get('x') todo
     # figures[move_to.get('id')]['y'] = move_to.get('y')
     set_figures()
+
 
 @socketio.on('get_pointers', namespace='/chess')
 def set_pointers(figure_x, figure_y):
@@ -56,7 +63,8 @@ def set_pointers(figure_x, figure_y):
     coords = [coord_to_chess(move) for move in moves]
     pointers = [{'x': coord.x, 'y': coord.y} for coord in coords]
     emit('set_pointers',
-         {'pointers': pointers })
+         {'pointers': pointers})
+
 
 @socketio.on('get_figures', namespace='/chess')
 def set_figures():

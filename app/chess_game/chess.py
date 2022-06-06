@@ -1,9 +1,10 @@
 from string import ascii_uppercase
 
+
 class Room:
-    def __init__(self, id, game, creator):
+    def __init__(self, room_id, game, creator):
         self.game = game
-        self.id = id
+        self.id = room_id
         self.creator = creator
         self.status = 'initial'
         self.players = {}
@@ -11,6 +12,7 @@ class Room:
 
     def get_figures(self):
         return self.game.board.get_figures()
+
 
 class Coordinate:
     def __init__(self, x, y):
@@ -124,8 +126,9 @@ class Pane(Figure):
 class Game:
     def __init__(self):
         self.board = Board()
-        self.board.add_figure(Pane(self.board, Pane.BLACK, Coordinate(4,4)))
-        self.board.add_figure(Pane(self.board, Pane.WHITE, Coordinate(2,2)))
+        self.board.add_figure(Pane(self.board, Pane.BLACK, Coordinate(4, 4)))
+        self.board.add_figure(Pane(self.board, Pane.WHITE, Coordinate(2, 2)))
+
 
 def coord_from_chess(x: str, y: str):
     return Coordinate(ascii_uppercase.find(str(x)) + 1, y)
@@ -137,4 +140,4 @@ def coord_to_chess(coord: Coordinate):
 
 if __name__ == "__main__":
     game = Game()
-    print(game.board.get_square(Coordinate(2,2)).get_available_moves())
+    print(game.board.get_square(Coordinate(2, 2)).get_available_moves())
