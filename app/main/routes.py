@@ -3,6 +3,7 @@ from flask import render_template, url_for, session, redirect, request
 
 from . import main, rooms
 from .forms import LoginForm, CreateRoomForm
+from ..Chess.chess import Room, Game
 
 
 def authenticated_only(f):
@@ -44,11 +45,7 @@ def chess():
     if session['name'] == '' or session['room'] == '':
         return redirect(url_for('main.index'))
     if session['room'] not in rooms:
-        rooms.update({session['room']:{'players': {},
-                                       'figures': {},
-                                       'spectators': {},
-                                       'status': 'init',
-                                       'creator': session['name']}})
+        rooms.update({session['room']: Room(id=session['room'], creator=session['name'], game=Game())})
     if "spect" in request.args:
         session['spectator'] = True
     else:

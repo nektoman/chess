@@ -1,34 +1,49 @@
 from string import ascii_uppercase
 
-class Coordinate():
+class Room:
+    def __init__(self, id, game, creator):
+        self.game = game
+        self.id = id
+        self.creator = creator
+        self.status = 'initial'
+        self.players = {}
+        self.spectators = {}
+
+    def get_figures(self):
+        return self.game.board.get_figures()
+
+class Coordinate:
     def __init__(self, x, y):
         self.x = int(x)
         self.y = int(y)
+
     def __eq__(self, other):
         if self.x == other.x and self.y == other.y:
             return True
         else:
             return False
+
     def __repr__(self):
         return f'X={self.x}, Y={self.y}'
 
-class Player():
+
+class Player:
     def __init__(self, name):
         self.name = name
 
 
-class Board():
-    def __init__(self, X_FROM=1, X_TO=4, Y_FROM=1, Y_TO=5, march=False):
-        self.X_FROM=X_FROM
-        self.X_TO=X_TO
-        self.Y_FROM=Y_FROM
-        self.Y_TO=Y_TO
+class Board:
+    def __init__(self, x_from=1, x_to=4, y_from=1, y_to=5, march=False):
+        self.x_from = x_from
+        self.x_to = x_to
+        self.y_from = y_from
+        self.y_to = y_to
         self.march = march
         self.figures = []
         self.enpasant = None
 
     def is_in_board(self, coord: Coordinate):
-        if coord.x >= self.X_FROM and coord.x <= self.X_TO and coord.y >= self.Y_FROM and coord.y <= self.Y_TO:
+        if self.x_to >= coord.x >= self.x_from and self.y_to >= coord.y >= self.y_from:
             return True
         else:
             return False
@@ -54,9 +69,11 @@ class Board():
         else:
             self.enpasant = None
 
-class Figure():
+
+class Figure:
     BLACK = 'team_black'
     WHITE = 'team_white'
+
     def __init__(self, board, team, coord: Coordinate):
         self.team = team
         self.coord = coord
@@ -70,58 +87,54 @@ class Pane(Figure):
 
     def get_available_moves(self):
         moves = []
-        #Направление
+        # Направление
         if self.team == Figure.WHITE:
             y = 1
         else:
             y = -1
 
-        #Шаг вперед
+        # Шаг вперед
         move_to = Coordinate(self.coord.x, self.coord.y + y)
-        if self.board.is_in_board(move_to) and self.board.get_square(move_to) == None:
+        if self.board.is_in_board(move_to) and self.board.get_square(move_to) is None:
             moves.append(move_to)
-        #Марш
-        if self.board.march == True:
-            if self.team == Figure.WHITE and self.coord.y == self.board.Y_FROM + y or self.team == Figure.BLACK and self.coord.y == self.board.Y_TO + y:
+        # Марш
+        if self.board.march:
+            if self.team == Figure.WHITE and self.coord.y == self.board.y_from + y or self.team == Figure.BLACK and self.coord.y == self.board.y_to + y:
                 move_to = Coordinate(self.coord.x, self.coord.y + y * 2)
-                if self.board.is_in_board(move_to) and self.board.get_square(move_to) == None and self.board.get_square(Coordinate(self.coord.x, self.coord.y + y)) == None:
+                if self.board.is_in_board(move_to) and self.board.get_square(move_to) is None and self.board.get_square(
+                        Coordinate(self.coord.x, self.coord.y + y)) is None:
                     moves.append(move_to)
-        #Взятия
+        # Взятия
         move_to = self.board.get_square(Coordinate(self.coord.x - 1, self.coord.y + y))
-        if move_to != None and move_to.team != self.team:
+        if move_to is not None and move_to.team != self.team:
             moves.append(move_to)
         move_to = self.board.get_square(Coordinate(self.coord.x + 1, self.coord.y + y))
-        if move_to != None and move_to.team != self.team:
+        if move_to is not None and move_to.team != self.team:
             moves.append(move_to)
-        #Взятия на проходе todo
-        if self.board.enpasant != None:
-            pass
-            # if
+        # Взятия на проходе
+        if self.board.enpasant is not None and self.board.enpasant.y == self.coord.y:
+            if self.board.enpasant.x == self.coord.x + 1:
+                moves.append(Coordinate(x=self.coord.x + 1, y=self.coord.y + y))
+            elif self.board.enpasant.x == self.coord.x - 1:
+                moves.append(Coordinate(x=self.coord.x - 1, y=self.coord.y + y))
+
         return moves
 
 
-class Game():
-    KING = 'king'
-    BISHOP = 'bishop'
-    KNIGHT = 'knight'
-    ROOK = 'rook'
-    def __init__(self, player_black, player_white):
-        self.player_black = player_black
-        self.player_white = player_white
-        # self.figures = { '1': {'x':'4', 'y':'5', 'texture_name':'pane_black','name': Game.PANE, 'team': Game.BLACK},
-        #                  '2': {'x':'1', 'y':'1', 'texture_name':'pane_white','name': Game.PANE, 'team': Game.WHITE} }
-        # self.player_moves = Game.WHITE
-
-    # def get_available_moves(self, figure_id):
-    #     # all_moves =
-    #     team = self.figures[figure_id]['team']
+class Game:
+    def __init__(self):
+        self.board = Board()
+        self.board.add_figure(Pane(self.board, Pane.BLACK, Coordinate(4,4)))
+        self.board.add_figure(Pane(self.board, Pane.WHITE, Coordinate(2,2)))
 
 def coord_from_chess(x: str, y: str):
     return Coordinate(ascii_uppercase.find(str(x)) + 1, y)
 
+
 def coord_to_chess(coord: Coordinate):
     return ascii_uppercase[coord.x - 1], str(coord.y)
 
+
 if __name__ == "__main__":
-    pane = Pane(Board(),Figure.WHITE, coord_from_chess('B','2'))
-    print(pane.get_available_moves())
+    game = Game()
+    print(game.board.get_square(Coordinate(2,2)).get_available_moves())

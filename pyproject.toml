@@ -6,6 +6,9 @@ authors = ["nektoman <kuvalda008@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+Flask = "^2.1.2"
+Flask-SocketIO = "^5.2.0"
+Flask-WTF = "^1.0.1"
 
 [tool.poetry.dev-dependencies]
 
