@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Chess4x5</title>
+    <script src="//code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+         var socket;
+         socket = io.connect('http://' + document.domain + ':' + location.port + '/lobby');
+
+         socket.on("connect", () => {
+            console.log("client: SOCKET CONNECTED!", socket.id);
+         });
+
+         socket.on('message', (msg) => {
+            console.log(msg)
+         });
+
+         socket.on('update_lobby_list', function(data) {
+               var text = '';
+               for (let room of data.rooms_join) {
+                   text = text + '<li><a href="#" onclick="go_to_lobby('+"'"+room["room"]+"'"+');">' +
+                            room['room'] + ', ' + room["creator"];
+               }
+               $('#lobbies_join').empty().append(text).html()
+               text = '';
+               for (let room of data.rooms_spectate) {
+                   text = text + '<li><a href="#" onclick="go_to_lobby_spectator('+"'"+room["room"]+"'"+');">' +
+                            room['room'] + ', players:';
+                   for (let player of room['players']) {
+                    text = text + ' *' + player['name']
+                   }
+               }
+               $('#lobbies_spectrate').empty().append(text).html()
+         });
+
+         function go_to_lobby(room_number) {
+            window.location.href = "{{ url_for( 'main.chess', room=text ) }}"+room_number;
+         }
+         function go_to_lobby_spectator(room_number) {
+            window.location.href = "{{ url_for( 'main.chess') }}"+"?room="+room_number+"&spect=yes";
+         }
+
+    </script>
+</head>
+<body>
+    <h1>Hi, {{ username }}</h1>
+    <h4>Create a lobby, or choose one of existing</h4>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        {{ form.room.label }}: {{ form.room() }} {% for error in form.room.errors %}{{ error }}{% endfor %}<br>
+        {{ form.submit() }}
+    </form>
+    <h4>Join game</h4>
+    <div id="lobbies_join" ></div>
+    <h4>Spectrate</h4>
+    <div id="lobbies_spectrate" ></div>
+</body>
+</html>
