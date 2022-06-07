@@ -10,9 +10,6 @@ class Room:
         self.players = {}
         self.spectators = {}
 
-    def get_figures(self):
-        return self.game.board.get_figures()
-
 
 class Coordinate:
     def __init__(self, x, y):
@@ -66,26 +63,36 @@ class Board:
         return None
 
     def move(self, figure, coord):
-        if figure is Pane and abs(figure.y - coord.y) > 1:
+        if figure is Pane and abs(figure.coord.y - coord.y) > 1:
             self.enpasant = coord
         else:
             self.enpasant = None
 
+        #todo
+        figure.coord = coord
+
 
 class Figure:
-    BLACK = 'team_black'
-    WHITE = 'team_white'
+    BLACK = 'black'
+    WHITE = 'white'
 
     def __init__(self, board, team, coord: Coordinate):
         self.team = team
         self.coord = coord
         self.board = board
 
+    def get_chess_x(self):
+        return coord_to_chess(self.coord)[0]
+
+    def get_chess_y(self):
+        return coord_to_chess(self.coord)[1]
+
 
 class Pane(Figure):
     def __init__(self, board, team, coord: Coordinate):
         super().__init__(board, team, coord)
         self.march = False
+        self.name = f'pane_{team}'
 
     def get_available_moves(self):
         moves = []
@@ -107,12 +114,12 @@ class Pane(Figure):
                         Coordinate(self.coord.x, self.coord.y + y)) is None:
                     moves.append(move_to)
         # Взятия
-        move_to = self.board.get_square(Coordinate(self.coord.x - 1, self.coord.y + y))
-        if move_to is not None and move_to.team != self.team:
-            moves.append(move_to)
-        move_to = self.board.get_square(Coordinate(self.coord.x + 1, self.coord.y + y))
-        if move_to is not None and move_to.team != self.team:
-            moves.append(move_to)
+        figure_to_capture = self.board.get_square(Coordinate(self.coord.x - 1, self.coord.y + y))
+        if figure_to_capture is not None and figure_to_capture.team != self.team:
+            moves.append(figure_to_capture.coord)
+        figure_to_capture = self.board.get_square(Coordinate(self.coord.x + 1, self.coord.y + y))
+        if figure_to_capture is not None and figure_to_capture.team != self.team:
+            moves.append(figure_to_capture.coord)
         # Взятия на проходе
         if self.board.enpasant is not None and self.board.enpasant.y == self.coord.y:
             if self.board.enpasant.x == self.coord.x + 1:
@@ -126,7 +133,7 @@ class Pane(Figure):
 class Game:
     def __init__(self):
         self.board = Board()
-        self.board.add_figure(Pane(self.board, Pane.BLACK, Coordinate(4, 4)))
+        self.board.add_figure(Pane(self.board, Pane.BLACK, Coordinate(3, 4)))
         self.board.add_figure(Pane(self.board, Pane.WHITE, Coordinate(2, 2)))
 
 

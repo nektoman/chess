@@ -51,7 +51,7 @@ def chess():
         session['spectator'] = True
     else:
         session['spectator'] = False
-    if rooms[session['room']]['status'] == 'init':
+    if rooms[session['room']].status == 'init':
         rooms[session['room']]['figures'] = {'1': {'x': 'D', 'y': '4', 'figure_name': 'pane_black'},
                                              '2': {'x': 'A', 'y': '1', 'figure_name': 'pane_white'}}
         rooms[session['room']]['status'] = 'wait_for_start'

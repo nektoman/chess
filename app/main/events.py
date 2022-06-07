@@ -33,11 +33,11 @@ def lobby_disconnect():
 def chess_connect():
     room = session['room']
     if not session['spectator']:
-        rooms[room].players.update({session.get('name'): {}})
+        rooms[room].players.update({session['name']: {}})
     else:
-        rooms[room].spectators.update({session.get('name'): {}})
+        rooms[room].spectators.update({session['name']: {}})
     join_room(room)
-    send(f'{session.get("name")} connected', room=room)
+    send(f'{session["name"]} connected', room=room)
     update_lobby_list()
 
 
@@ -50,27 +50,26 @@ def chess_disconnect():
 
 
 @socketio.on('move_to', namespace='/chess')
-def move_to(chess_coord):
-    figures = rooms[session.get('room')].board.get_figures()
-    # figures[move_to.get('id')]['x'] = move_to.get('x') todo
-    # figures[move_to.get('id')]['y'] = move_to.get('y')
+def move_to(move):
+    board = rooms[session.get('room')].game.board
+    figure = board.get_square(coord_from_chess(move['x_from'], move['y_from']))
+    board.move(figure, coord_from_chess(move['x_to'], move['y_to']))
     set_figures()
 
 
 @socketio.on('get_pointers', namespace='/chess')
-def set_pointers(figure_x, figure_y):
-    moves = rooms[session.get('room')].board.get_square(coord_from_chess(figure_x, figure_y)).get_avaibale_moves()
+def set_pointers(coord):
+    room = session['room']
+    moves = rooms[room].game.board.get_square(coord_from_chess(coord['x'], coord['y'])).get_available_moves()
     coords = [coord_to_chess(move) for move in moves]
-    pointers = [{'x': coord.x, 'y': coord.y} for coord in coords]
+    pointers = [{'x': coordinate[0], 'y': coordinate[1]} for coordinate in coords]
     emit('set_pointers',
          {'pointers': pointers})
 
 
 @socketio.on('get_figures', namespace='/chess')
 def set_figures():
-    figures = rooms[session.get('room')].board.get_figures()
-    # json_figures = {'figures':[ {'id':key, todo
-    #                              'x': value.get('x'),
-    #                              'y': value.get('y'),
-    #                              'figure_name': value.get('figure_name') } for key,value in figures.items() ]}
-    # emit('set_figures', json_figures, room=session.get('room'))
+    room = session['room']
+    figures = rooms[room].game.board.get_figures()
+    json_figures = {'figures':[ {'x': figure.get_chess_x(), 'y': figure.get_chess_y(), 'name': figure.name } for figure in figures ]}
+    emit('set_figures', json_figures, room=session.get('room'))

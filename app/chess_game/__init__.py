@@ -1,1 +1,1 @@
-from chess import *
+from .chess import Game, Coordinate, Figure, coord_to_chess, coord_from_chess, Board, Room
