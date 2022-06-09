@@ -1,14 +1,8 @@
 from string import ascii_uppercase
 
-
-class Room:
-    def __init__(self, room_id, game, creator):
-        self.game = game
-        self.id = room_id
-        self.creator = creator
-        self.status = 'initial'
-        self.players = {}
-        self.spectators = {}
+class Player:
+    def __init__(self, name):
+        self.name = name
 
 
 class Coordinate:
@@ -26,10 +20,44 @@ class Coordinate:
         return f'X={self.x}, Y={self.y}'
 
 
-class Player:
-    def __init__(self, name):
-        self.name = name
+class Game_room:
+    def __init__(self, room_id, creator):
+        self.id = room_id
+        self.creator = creator
+        self.status = 'initial'
+        self.__players = {}
+        self.spectators = {}
 
+        self.__board = Board()
+        self.__board.add_figure(Pane(self.__board, Pane.BLACK, Coordinate(3, 4)))
+        self.__board.add_figure(Pane(self.__board, Pane.WHITE, Coordinate(2, 2)))
+
+    def add_player(self, player: Player):
+        if player.name not in self.__players:
+            self.__players.update({player.name:player})
+            if not self.have_empty_slot():
+                self.status = 'ready_to_start'
+            return True
+
+    def get_players(self):
+        return self.__players
+
+    def have_empty_slot(self):
+        return len(self.__players) < 2
+
+    def move(self, x_from, y_from, x_to, y_to):
+        figure = self.__board.get_square(coord_from_chess(x_from, y_from))
+        return self.__board.move(figure, coord_from_chess(x_to, y_to))
+
+    def get_available_moves(self, coord : Coordinate):
+        figure = self.__board.get_square(coord)
+        if figure is not None:
+            return figure.get_available_moves()
+        else:
+            return None
+
+    def get_figures(self):
+        return self.__board.get_figures()
 
 class Board:
     def __init__(self, x_from=1, x_to=4, y_from=1, y_to=5, march=False):
@@ -50,6 +78,9 @@ class Board:
     def add_figure(self, figure):
         self.figures.append(figure)
 
+    def capture_figure(self, figure):
+        self.figures.remove(figure)
+
     def get_figures(self):
         return self.figures
 
@@ -63,13 +94,19 @@ class Board:
         return None
 
     def move(self, figure, coord):
+        if coord not in figure.get_available_moves():
+            return False
         if figure is Pane and abs(figure.coord.y - coord.y) > 1:
             self.enpasant = coord
         else:
             self.enpasant = None
 
-        #todo
+        figure_on_way = self.get_square(coord)
+        if figure_on_way is not None:
+            self.capture_figure(figure_on_way)
+
         figure.coord = coord
+        return True
 
 
 class Figure:
@@ -86,6 +123,9 @@ class Figure:
 
     def get_chess_y(self):
         return coord_to_chess(self.coord)[1]
+
+    def get_available_moves(self):
+        return None
 
 
 class Pane(Figure):
@@ -130,13 +170,6 @@ class Pane(Figure):
         return moves
 
 
-class Game:
-    def __init__(self):
-        self.board = Board()
-        self.board.add_figure(Pane(self.board, Pane.BLACK, Coordinate(3, 4)))
-        self.board.add_figure(Pane(self.board, Pane.WHITE, Coordinate(2, 2)))
-
-
 def coord_from_chess(x: str, y: str):
     return Coordinate(ascii_uppercase.find(str(x)) + 1, y)
 
@@ -145,6 +178,10 @@ def coord_to_chess(coord: Coordinate):
     return ascii_uppercase[coord.x - 1], str(coord.y)
 
 
+def create_game_room_if_init(rooms, room_name, creator_name):
+    if room_name not in rooms:
+        rooms.update({room_name: Game_room(room_id=room_name, creator=creator_name)})
+
+
 if __name__ == "__main__":
-    game = Game()
-    print(game.board.get_square(Coordinate(2, 2)).get_available_moves())
+    pass

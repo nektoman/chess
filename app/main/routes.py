@@ -3,7 +3,7 @@ from flask import render_template, url_for, session, redirect, request
 
 from . import main, rooms
 from .forms import LoginForm, CreateRoomForm
-from ..chess_game import Room, Game
+from ..chess_game import create_game_room_if_init
 
 
 def authenticated_only(f):
@@ -13,7 +13,6 @@ def authenticated_only(f):
             return redirect(url_for('main.login'))
         else:
             return f(*args, **kwargs)
-
     return wrapped
 
 
@@ -23,7 +22,6 @@ def login():
     message = 'Introduce yourself, please'
     if request.method == 'POST' and form.validate_on_submit():
         session['name'] = request.form.get('name')
-        print(f'{session["name"]} logined')
         return redirect(url_for('main.index'))
     return render_template('login.html', form=form, message=message)
 
@@ -34,6 +32,7 @@ def index():
     form = CreateRoomForm()
     if form.validate_on_submit():
         session['room'] = form.room.data
+        create_game_room_if_init(rooms, session['room'], session['name'])
         return redirect(url_for('main.chess'))
     return render_template('index.html', username=session['name'], form=form)
 
@@ -45,14 +44,9 @@ def chess():
         session['room'] = request.args.get('room')
     if session['name'] == '' or session['room'] == '':
         return redirect(url_for('main.index'))
-    if session['room'] not in rooms:
-        rooms.update({session['room']: Room(room_id=session['room'], creator=session['name'], game=Game())})
+    create_game_room_if_init(rooms, session['room'], session['name'])
     if "spect" in request.args:
         session['spectator'] = True
     else:
         session['spectator'] = False
-    if rooms[session['room']].status == 'init':
-        rooms[session['room']]['figures'] = {'1': {'x': 'D', 'y': '4', 'figure_name': 'pane_black'},
-                                             '2': {'x': 'A', 'y': '1', 'figure_name': 'pane_white'}}
-        rooms[session['room']]['status'] = 'wait_for_start'
     return render_template('chess.html', name=session['name'], room=session['room'])

@@ -1,1 +1,1 @@
-from .chess import Game, Coordinate, Figure, coord_to_chess, coord_from_chess, Board, Room
+from .chess import Coordinate, Figure, coord_to_chess, coord_from_chess, Board, Game_room, create_game_room_if_init, Player
