@@ -5,6 +5,7 @@
     <title>Chess4x5</title>
     <script src="//cdn.jsdelivr.net/npm/phaser@3.54.0/dist/phaser.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="//code.jquery.com/jquery-1.12.4.min.js"></script>
     <script src="{{ url_for('static', filename='scripts/chess.js') }}"></script>
     <style type="text/css">
         body {
@@ -14,6 +15,7 @@
     </style>
 </head>
 <body>
-
+<h4><div id="player_team" ></div></h4>
+<h4><div id="player_to_move" ></div></h4>
 </body>
 </html>

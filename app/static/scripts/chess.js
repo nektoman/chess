@@ -14,6 +14,7 @@ var figures = [[]];
 figures.length = 0;
 var pointers = [];
 pointers.length = 0;
+team = ''
 var drag_start = {x:"",y:""};
 
 function chess_to_pixel(chess) {
@@ -94,15 +95,20 @@ function create () {
             pixels_coord = chess_to_pixel(elem);
             figure = this.add.sprite(pixels_coord.x, pixels_coord.y, elem.name);
             figure.setInteractive();
-            this.input.setDraggable(figure);
+            if ( msg.active_team == team && elem.team == team ){
+                this.input.setDraggable(figure);
+            }
             figures.push([figure, elem]);
         }
+        text = 'Turn ' + msg.active_team
+        $('#player_to_move').empty().append(text)
     });
-    this.socket.emit('get_figures')
 
-
-
-    this.socket.emit('get_figures')
+    this.socket.on('set_team', (msg) => {
+        team = msg.team
+        text = 'You are playing by ' + team
+        $('#player_team').empty().append(text)
+    })
 
     this.input.on('dragstart', function (pointer, gameObject) {
         gameObject.x = pointer.x;
@@ -129,17 +135,7 @@ function create () {
                                            y_to: chess_coord.y})
         gameObject.clearTint();
     });
-
-<!--    debug-->
-    text = this.add.text(10, 10)
-<!--    debug-->
 }
 
 function update () {
-    var pointer = this.input.activePointer;
-<!--    debug-->
-    text.setText([
-        'x: ' + pointer.x,
-        'y: ' + pointer.y ]);
-<!--    debug-->
 }

@@ -3,7 +3,7 @@ from flask_socketio import leave_room, send, emit, join_room
 
 from .. import socketio
 from . import rooms
-from ..chess_game import coord_to_chess, coord_from_chess, Player, create_game_room_if_init
+from ..chess_game import coord_to_chess, coord_from_chess, create_game_room_if_init, Player
 
 
 def update_lobby_list():
@@ -30,14 +30,16 @@ def lobby_disconnect():
 @socketio.on('connect', namespace='/chess')
 def chess_connect():
     room = session['room']
+    create_game_room_if_init(rooms, session['room'], session['name'])
     if not session['spectator']:
-        create_game_room_if_init(rooms, session['room'], session['name'])
         rooms[room].add_player(Player(session['name']))
     else:
-        rooms[room].spectators.update({session['name']: {}})
+        rooms[room].add_spectator(Player(session['name']))
     join_room(room)
     send(f'{session["name"]} connected', room=room)
+    emit('set_team', {'team': rooms[room].get_user_by_name(session['name']).get_team()})
     update_lobby_list()
+    set_figures()
 
 
 @socketio.on('disconnect', namespace='/chess')
@@ -68,5 +70,9 @@ def set_pointers(coord):
 def set_figures():
     room = session['room']
     figures = rooms[room].get_figures()
-    json_figures = {'figures':[ {'x': figure.get_chess_x(), 'y': figure.get_chess_y(), 'name': figure.name } for figure in figures ]}
+    json_figures = {'figures': [{'x': figure.get_chess_x(),
+                                 'y': figure.get_chess_y(),
+                                 'name': figure.get_name(),
+                                 'team': figure.get_team()} for figure in figures],
+                    'active_team': rooms[room].get_active_team()}
     emit('set_figures', json_figures, room=session.get('room'))
