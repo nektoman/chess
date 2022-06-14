@@ -39,18 +39,28 @@ class Coordinate:
 class Game_room:
     TEAM_BLACK = 'black'
     TEAM_WHITE = 'white'
+    STALEMATE = 'stalemate'
     SPECTATOR = 'spectator'
+    INITIAL = 'initial'
+    IN_PLAY = 'in_play'
 
     def __init__(self, room_id, creator):
         self.__team_to_move = Game_room.TEAM_WHITE
         self.id = room_id
         self.creator = creator
-        self.__status = 'initial'
+        self.__status = Game_room.INITIAL
         self.__players = {}
         self.__users = {}
         self.__board = Board()
         self.init_figures()
         self.team_generator = self.__get_rand_team()
+        self.__winner = ''
+
+    def in_play(self):
+        return self.__status == Game_room.IN_PLAY
+
+    def get_game_result(self):
+        return self.__winner
 
     def add_player(self, player: Player):
         if self.have_empty_slot():
@@ -59,8 +69,8 @@ class Game_room:
                 player.set_team(self.team_generator.__next__())
                 self.__players.update({player_name:player})
                 self.__users.update({player_name:player})
-                if not self.have_empty_slot():
-                    self.__status = 'ready_to_start'
+                if self.__status == Game_room.INITIAL:
+                    self.__status = Game_room.IN_PLAY
                 return True
 
     def get_players(self):
@@ -86,7 +96,24 @@ class Game_room:
         moved = self.__board.move(figure, coord_from_chess(x_to, y_to))
         if moved:
             self.swap_active_team()
-        return moved
+
+        # Может ли продолжаться игра
+        for figure in self.get_figures():
+            if figure.get_team() == self.get_active_team() and figure.get_available_moves() is not None:
+                return moved
+        # Если дошли сюда то нет, осталось понять мат или пат, проверить под боем ли король
+        for figure in self.get_figures():
+            if figure.get_team() == self.get_active_team() and figure is King:
+                if figure.under_attack():
+                    if self.__team_to_move == Game_room.TEAM_WHITE:
+                        self.__winner = Game_room.TEAM_BLACK
+                    else:
+                        self.__winner = Game_room.TEAM_WHITE
+                else:
+                    self.__winner = Game_room.STALEMATE
+
+
+
 
     def get_available_moves(self, coord : Coordinate):
         figure = self.__board.get_square(coord)
@@ -188,11 +215,39 @@ class Figure:
         return 'Figure'
 
 
+class King(Figure):
+    def __init__(self, board, team, coord: Coordinate):
+        super().__init__(board, team, coord)
+        self.name = f'king_{team}'
+
+    def get_name(self):
+        return f'king_{self.get_team()}'
+
+    def get_available_moves(self):
+        moves = []
+
+        self.__check_and_append(Coordinate(self.coord.x, self.coord.y + 1), moves)
+        self.__check_and_append(Coordinate(self.coord.x - 1, self.coord.y + 1), moves)
+        self.__check_and_append(Coordinate(self.coord.x + 1, self.coord.y + 1), moves)
+        self.__check_and_append(Coordinate(self.coord.x - 1, self.coord.y), moves)
+        self.__check_and_append(Coordinate(self.coord.x + 1, self.coord.y), moves)
+        self.__check_and_append(Coordinate(self.coord.x, self.coord.y - 1), moves)
+        self.__check_and_append(Coordinate(self.coord.x - 1, self.coord.y - 1), moves)
+        self.__check_and_append(Coordinate(self.coord.x + 1, self.coord.y - 1), moves)
+
+        return moves
+
+    def under_attack(self):
+        return False
+
+    def __check_and_append(self, move_to, moves):
+        if self._board.is_in_board(move_to) and self._board.get_square(move_to) is None or self._board.get_square(move_to).get_team() != self.get_team():
+            moves.append(move_to)
+
 class Pane(Figure):
     def __init__(self, board, team, coord: Coordinate):
         super().__init__(board, team, coord)
         self.march = False
-        self.name = f'pane_{team}'
 
     def get_name(self):
         return f'pane_{self.get_team()}'

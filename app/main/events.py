@@ -52,7 +52,10 @@ def chess_disconnect():
 
 @socketio.on('move_to', namespace='/chess')
 def move_to(move):
-    rooms[session['room']].move(x_from=move['x_from'], y_from=move['y_from'], x_to=move['x_to'], y_to=move['y_to'])
+    game_room = rooms[session['room']]
+    game_room.move(x_from=move['x_from'], y_from=move['y_from'], x_to=move['x_to'], y_to=move['y_to'])
+    if not game_room.in_play():
+        emit('game_result', {'result': game_room.get_game_result()})
     set_figures()
 
 
