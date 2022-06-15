@@ -62,7 +62,7 @@ def move_to(move):
 @socketio.on('get_pointers', namespace='/chess')
 def set_pointers(coord):
     room = session['room']
-    moves = rooms[room].get_available_moves(coord_from_chess(coord['x'], coord['y']))
+    moves = rooms[room].get_legal_moves(coord_from_chess(coord['x'], coord['y']))
     coords = [coord_to_chess(move) for move in moves]
     pointers = [{'x': coordinate[0], 'y': coordinate[1]} for coordinate in coords]
     emit('set_pointers',

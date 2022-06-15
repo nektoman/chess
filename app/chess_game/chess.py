@@ -102,23 +102,22 @@ class Game_room:
             if figure.get_team() == self.get_active_team() and figure.get_available_moves() is not None:
                 return moved
         # Если дошли сюда то нет, осталось понять мат или пат, проверить под боем ли король
-        for figure in self.get_figures():
-            if figure.get_team() == self.get_active_team() and figure is King:
-                if figure.under_attack():
-                    if self.__team_to_move == Game_room.TEAM_WHITE:
-                        self.__winner = Game_room.TEAM_BLACK
-                    else:
-                        self.__winner = Game_room.TEAM_WHITE
-                else:
-                    self.__winner = Game_room.STALEMATE
+        king = self.__board.get_king(self.get_active_team())
+        if king.under_attack():
+            if self.__team_to_move == Game_room.TEAM_WHITE:
+                self.__winner = Game_room.TEAM_BLACK
+            else:
+                self.__winner = Game_room.TEAM_WHITE
+        else:
+            self.__winner = Game_room.STALEMATE
 
 
 
 
-    def get_available_moves(self, coord : Coordinate):
+    def get_legal_moves(self, coord : Coordinate):
         figure = self.__board.get_square(coord)
         if figure is not None:
-            return figure.get_available_moves()
+            return figure.get_legal_moves()
         else:
             return None
 
@@ -128,6 +127,8 @@ class Game_room:
     def init_figures(self):
         self.__board.add_figure(Pane(self.__board, Game_room.TEAM_BLACK, Coordinate(3, 4)))
         self.__board.add_figure(Pane(self.__board, Game_room.TEAM_WHITE, Coordinate(2, 2)))
+        self.__board.add_figure(King(self.__board, Game_room.TEAM_WHITE, Coordinate(2, 4)))
+        self.__board.add_figure(King(self.__board, Game_room.TEAM_BLACK, Coordinate(4, 4)))
 
     def get_status(self):
         return self.__status
@@ -178,9 +179,9 @@ class Board:
         return None
 
     def move(self, figure, coord):
-        if coord not in figure.get_available_moves():
+        if coord not in figure.get_legal_moves():
             return False
-        if figure is Pane and abs(figure.coord.y - coord.y) > 1:
+        if isinstance(figure, Pane) and abs(figure.coord.y - coord.y) > 1:
             self.enpasant = coord
         else:
             self.enpasant = None
@@ -191,6 +192,11 @@ class Board:
 
         figure.coord = coord
         return True
+
+    def get_king(self, team):
+        for figure in self.figures:
+            if figure.get_team() == team and isinstance(figure, King):
+                return figure
 
 
 class Figure:
@@ -206,7 +212,18 @@ class Figure:
         return coord_to_chess(self.coord)[1]
 
     def get_available_moves(self):
-        return None
+        return []
+
+    def get_legal_moves(self):
+        legal_moves = []
+        coord = self.coord
+        my_king = self._board.get_king(self.get_team())
+        for move in self.get_available_moves():
+            self.coord = move
+            if not my_king.under_attack():
+                legal_moves.append(move)
+        self.coord = coord
+        return legal_moves
 
     def get_team(self):
         return self.__team
@@ -214,11 +231,13 @@ class Figure:
     def get_name(self):
         return 'Figure'
 
+    def can_attack(self, figure):
+        return False
+
 
 class King(Figure):
     def __init__(self, board, team, coord: Coordinate):
         super().__init__(board, team, coord)
-        self.name = f'king_{team}'
 
     def get_name(self):
         return f'king_{self.get_team()}'
@@ -238,11 +257,23 @@ class King(Figure):
         return moves
 
     def under_attack(self):
+        for figure in self._board.get_figures():
+            if figure.get_team() != self.get_team() and figure.can_attack(self):
+                return True
         return False
 
     def __check_and_append(self, move_to, moves):
-        if self._board.is_in_board(move_to) and self._board.get_square(move_to) is None or self._board.get_square(move_to).get_team() != self.get_team():
-            moves.append(move_to)
+        if self._board.is_in_board(move_to):
+            if self._board.get_square(move_to) is None:
+                moves.append(move_to)
+            elif self._board.get_square(move_to).get_team() != self.get_team():
+                moves.append(move_to)
+
+    def can_attack(self, figure):
+        if abs(figure.coord.x - self.coord.x) < 2 and abs(figure.coord.y - self.coord.y) < 2:
+            return True
+        else:
+            return False
 
 class Pane(Figure):
     def __init__(self, board, team, coord: Coordinate):
@@ -255,37 +286,51 @@ class Pane(Figure):
     def get_available_moves(self):
         moves = []
         # Направление
-        if self.get_team() == Game_room.TEAM_WHITE:
-            y = 1
-        else:
-            y = -1
+        direction = self._get_direction()
 
         # Шаг вперед
-        move_to = Coordinate(self.coord.x, self.coord.y + y)
+        move_to = Coordinate(self.coord.x, self.coord.y + direction)
         if self._board.is_in_board(move_to) and self._board.get_square(move_to) is None:
             moves.append(move_to)
         # Марш
         if self._board.march:
-            if self.get_team() == Game_room.TEAM_WHITE and self.coord.y == self._board.y_from + y or self.get_team() == Game_room.TEAM_BLACK and self.coord.y == self._board.y_to + y:
-                move_to = Coordinate(self.coord.x, self.coord.y + y * 2)
+            if self.get_team() == Game_room.TEAM_WHITE and self.coord.y == self._board.y_from + direction or self.get_team() == Game_room.TEAM_BLACK and self.coord.y == self._board.y_to + direction:
+                move_to = Coordinate(self.coord.x, self.coord.y + direction * 2)
                 if self._board.is_in_board(move_to) and self._board.get_square(move_to) is None and self._board.get_square(
-                        Coordinate(self.coord.x, self.coord.y + y)) is None:
+                        Coordinate(self.coord.x, self.coord.y + direction)) is None:
                     moves.append(move_to)
         # Взятия
-        figure_to_capture = self._board.get_square(Coordinate(self.coord.x - 1, self.coord.y + y))
+        figure_to_capture = self._board.get_square(Coordinate(self.coord.x - 1, self.coord.y + direction))
         if figure_to_capture is not None and figure_to_capture.get_team() != self.get_team():
             moves.append(figure_to_capture.coord)
-        figure_to_capture = self._board.get_square(Coordinate(self.coord.x + 1, self.coord.y + y))
+        figure_to_capture = self._board.get_square(Coordinate(self.coord.x + 1, self.coord.y + direction))
         if figure_to_capture is not None and figure_to_capture.get_team() != self.get_team():
             moves.append(figure_to_capture.coord)
         # Взятия на проходе
         if self._board.enpasant is not None and self._board.enpasant.y == self.coord.y:
             if self._board.enpasant.x == self.coord.x + 1:
-                moves.append(Coordinate(x=self.coord.x + 1, y=self.coord.y + y))
+                moves.append(Coordinate(x=self.coord.x + 1, y=self.coord.y + direction))
             elif self._board.enpasant.x == self.coord.x - 1:
-                moves.append(Coordinate(x=self.coord.x - 1, y=self.coord.y + y))
+                moves.append(Coordinate(x=self.coord.x - 1, y=self.coord.y + direction))
 
         return moves
+
+    def can_attack(self, figure):
+        direction = self._get_direction()
+        # Взятия
+        if abs(figure.coord.x - self.coord.x) == 1 and figure.coord.y == self.coord.y + direction:
+            return True
+        # Взятия на проходе
+        elif isinstance(figure, Pane) and self._board.enpasant is not None and self._board.enpasant.y == self.coord.y and abs(self.coord.x - self._board.enpasant.x) == 1:
+            return True
+        else:
+            return False
+
+    def _get_direction(self):
+        if self.get_team() == Game_room.TEAM_WHITE:
+            return 1
+        else:
+            return -1
 
 
 def coord_from_chess(x: str, y: str):
