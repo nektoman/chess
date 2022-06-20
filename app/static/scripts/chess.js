@@ -71,9 +71,15 @@ function pixel_to_chess(pixel) {
 function preload () {
     this.load.image('board4x5', 'static/images/board4x5.png');
     this.load.image('pane_white', 'static/images/pane_white.png');
-    this.load.image('king_white', 'static/images/king_white.png');
     this.load.image('pane_black', 'static/images/pane_black.png');
+    this.load.image('king_white', 'static/images/king_white.png');
     this.load.image('king_black', 'static/images/king_black.png');
+    this.load.image('rook_white', 'static/images/rook_white.png');
+    this.load.image('rook_black', 'static/images/rook_black.png');
+    this.load.image('bishop_white', 'static/images/bishop_white.png');
+    this.load.image('bishop_black', 'static/images/bishop_black.png');
+    this.load.image('knight_white', 'static/images/knight_white.png');
+    this.load.image('knight_black', 'static/images/knight_black.png');
     this.load.image('pointer', 'static/images/pointer.png');
 }
 
