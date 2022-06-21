@@ -86,6 +86,7 @@ function preload () {
 function create () {
     this.socket = io('/chess');
     this.socket.on('set_pointers', (msg) => {
+        console.log('set_pointers')
         for (let elem of msg.pointers) {
             pixels_coord = chess_to_pixel(elem)
             pointer = this.add.sprite(pixels_coord.x, pixels_coord.y, 'pointer');
@@ -95,6 +96,7 @@ function create () {
     });
     this.add.sprite(300, 375, 'board4x5');
     this.socket.on('set_figures', (msg) => {
+        console.log('set_figures')
         for (let elem of figures) {
             elem[0].destroy()
         }
@@ -119,6 +121,7 @@ function create () {
     })
 
     this.input.on('dragstart', function (pointer, gameObject) {
+        console.log('dragstart')
         gameObject.x = pointer.x;
         gameObject.y = pointer.y;
         chess_coord = pixel_to_chess(gameObject);
@@ -132,6 +135,7 @@ function create () {
         gameObject.y = pointer.y;
     });
     this.input.on('dragend', function (pointer, gameObject) {
+        console.log('dragend')
         for (let elem of pointers) {
             elem.destroy()
         }

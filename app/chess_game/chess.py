@@ -228,7 +228,8 @@ class Figure:
         legal_moves = []
         coord = self.coord
         my_king = self._board.get_king(self.get_team())
-        for move in self.get_available_moves():
+        available_moves = self.get_available_moves()
+        for move in available_moves:
             self.coord = move
             if not my_king.under_attack():
                 legal_moves.append(move)
@@ -253,13 +254,15 @@ class Figure:
             if self._board.is_in_board(check_coord):
                 figure_on_check_coord = self._board.get_square(check_coord)
                 if figure_on_check_coord is None:
-                    moves.append(check_coord)
+                    moves.append(Coordinate(check_coord.x, check_coord.y))
                     continue
                 elif figure_on_check_coord.get_team() != self.get_team() or attack:
-                    moves.append(check_coord)
+                    moves.append(Coordinate(check_coord.x, check_coord.y))
                     return moves
                 else:
                     return moves
+            else:
+                return moves
 
 
 class King(Figure):
@@ -293,8 +296,11 @@ class King(Figure):
         if self._board.is_in_board(move_to):
             if self._board.get_square(move_to) is None:
                 moves.append(move_to)
-            elif self._board.get_square(move_to).get_team() != self.get_team():
-                moves.append(move_to)
+            else:
+                team_move_to = self._board.get_square(move_to).get_team()
+                my_team = self.get_team()
+                if team_move_to != my_team:
+                    moves.append(move_to)
 
     def can_attack(self, figure):
         if abs(figure.coord.x - self.coord.x) < 2 and abs(figure.coord.y - self.coord.y) < 2:
@@ -311,10 +317,12 @@ class Bishop(Figure):
         return f'bishop_{self.get_team()}'
 
     def get_available_moves(self):
-        return [self._get_moves_on_line(1, 1),
-                self._get_moves_on_line(1, -1),
-                self._get_moves_on_line(-1, 1),
-                self._get_moves_on_line(-1, -1)]
+        moves = []
+        moves.extend(self._get_moves_on_line(1, 1))
+        moves.extend(self._get_moves_on_line(-1, 1))
+        moves.extend(self._get_moves_on_line(-1, 1))
+        moves.extend(self._get_moves_on_line(-1, -1))
+        return moves
 
     def can_attack(self, figure):
         if abs(self.coord.x - figure.coord.x) == abs(self.coord.y - figure.coord.y):
@@ -343,10 +351,12 @@ class Rook(Figure):
         return f'rook_{self.get_team()}'
 
     def get_available_moves(self):
-        return [self._get_moves_on_line(1, 0),
-                self._get_moves_on_line(-1, 0),
-                self._get_moves_on_line(0, 1),
-                self._get_moves_on_line(0, -1)]
+        moves = []
+        moves.extend(self._get_moves_on_line(1, 0))
+        moves.extend(self._get_moves_on_line(-1, 0))
+        moves.extend(self._get_moves_on_line(0, 1))
+        moves.extend(self._get_moves_on_line(0, -1))
+        return moves
 
     def can_attack(self, figure):
         if self.coord.x == figure.coord.x:
@@ -490,4 +500,6 @@ def create_game_room_if_init(rooms, room_name, creator_name):
 
 
 if __name__ == "__main__":
-    pass
+    game = GameRoom(1,'1')
+    game.move('A','1','A','4')
+    print(game.get_legal_moves(Coordinate(1,5)))
